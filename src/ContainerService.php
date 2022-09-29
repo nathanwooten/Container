@@ -4,22 +4,20 @@ namespace nathanwooten\Container;
 
 use nathanwooten\{
 
-  Autoloader,
-
-  Standard\StandardRun
+  Autoloader
 
 };
+
+use function orDefault;
 
 use Exception;
 
 abstract class ContainerService
 {
 
-  use StandardRun;
-
   protected ContainerInterface $container;
 
-  protected $id = IdClass::class;
+  protected $id;
   protected $args = [];
 
   protected $load = [];
@@ -30,7 +28,10 @@ abstract class ContainerService
 
     $this->container = $container;
 
-    $this->load( ...$this->load );
+    if ( ! empty( $this->load ) ) {
+      $this->load( ...$this->load );
+    }
+
   }
 
   public function service( ...$args )
@@ -41,7 +42,13 @@ abstract class ContainerService
       $service = $this->id;
       $args = $this->args( $args );
 
-      $service = new $service( ...$args );
+      if ( ! method_exists( $this, $this->getName() ) ) {
+		$service = new $service( ...$args );
+
+      } else {
+        $this->{$this->getName()}();
+
+      }
 
       if ( $this->isFactory() ) {
         return $service;
@@ -57,8 +64,15 @@ abstract class ContainerService
   public function args( $args )
   {
 
-	$this->args = $this->orDefault( 'args', $args );
-    return $this->args;
+    if ( ! isset( $args ) ) {
+      if ( ! isset( $this->args ) ) {
+        $args = [];
+      } else {
+        $args = $this->args;
+      }
+    }
+
+    return $this->args = $args;
 
   }
 
@@ -85,10 +99,10 @@ abstract class ContainerService
 
   }
 
-  public function orDefault( $property, $value = null )
+  public function getName()
   {
 
-    return $this->standardRun( __FUNCTION__, [ $this, $property, $value ] );    
+    return getName( $this->id );
 
   }
 
