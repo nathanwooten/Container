@@ -8,13 +8,6 @@ use nathanwooten\{
 
 };
 
-use websiteproject\{
-
-  Container\Dependencies,
-  Registry\Registry
-
-};
-
 use Exception;
 
 abstract class ContainerAbstract implements ContainerInterface
@@ -30,10 +23,6 @@ abstract class ContainerAbstract implements ContainerInterface
     if ( ! is_null( $directory ) ) {
       $this->config( $directory );
     }
-
-    $this->set( Dependencies::class, $this->create( Dependencies::class ) );
-
-    Registry::set( get_class( $this ), $this, [ 'directory' => $directory ] );
 
   }
 
@@ -54,15 +43,13 @@ abstract class ContainerAbstract implements ContainerInterface
     if ( array_key_exists( $id, $this->services ) ) {
       $container = $this->services[ $id ];
 
-      $service = $container->service( ...$args );
-
     } else {
-
       $container = $this->create( $id );
-      $this->set( $id, $container );
 
-      $service = $container->service( ...$args );
+      $this->set( $id, $container );
     }
+
+    $service = $container->service( ...$args );
 
     return $service;
 
@@ -70,7 +57,7 @@ abstract class ContainerAbstract implements ContainerInterface
 
   protected function create( $id, array $args = null )
   {
-var_dump( $id );
+
     $service = false;
     $args = (array) $args;
 
@@ -81,7 +68,7 @@ var_dump( $id );
         $directory = $fn_args[2];
     }
     $directory = rtrim( $directory, DS ) . DS;
-    $name = static::getName( $id );
+    $name = $this->getName( $id );
 
 	$directory = $directory . $name . DS;
 	$readable = $directory . $name . 'service.php';
@@ -89,7 +76,7 @@ var_dump( $id );
     if ( ! is_readable( $readable ) ) {
       throw new Exception( 'Unreadable: ' . (string) $readable );
     }
-    $class = static::getClass( $id );
+    $class = $this->getServiceClass( $id );
 
     $container = new $class( $this );
     return $container;
@@ -122,29 +109,26 @@ var_dump( $id );
 
   }
 
-  protected function run( $fn_name, array $args = [] )
-  {
-
-    $dependencies = $this->get( Dependencies::class );
-    $result = $dependencies->runUser( $fn_nmae, $args );
-
-    return $result;
-
-  }
-
-  public static function getName( $id )
-  {
-
-    $name = str_replace( '\\', '', strtolower( $id ) );
-    return $name;
-
-  }
-
-  public static function getClass( $id )
+  public function getServiceClass( $id )
   {
 
     $name = static::getName( $id );
     $class = static::getNamespace() . '\\' . 'Services' . '\\' . $name . '\\' . $name . 'service';
+    return $class;
+
+  }
+
+  public function getName( $id )
+  {
+
+    return str_replace( '\\', '', strtolower( $id ) );
+
+  }
+
+  public static function getContainerClass()
+  {
+
+    $class = PROJECT_NAME . '\\' . 'Container' . '\\' . 'Container';
     return $class;
 
   }
